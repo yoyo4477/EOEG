@@ -1,10 +1,11 @@
 """
-Transformer Model for manufacturing quality prediction
+Transformer Model for Manufacturing Quality Prediction
+Transformer模型用于制造业质量预测
 """
 
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
+from tensorflow.keras import layers, Model
 import config
 
 
@@ -12,26 +13,28 @@ class TransformerBlock(layers.Layer):
     """Transformer block with multi-head attention"""
 
     def __init__(self, embed_dim, num_heads, ff_dim, rate=0.1, **kwargs):
-        super(TransformerBlock, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.ff_dim = ff_dim
         self.rate = rate
 
+    def build(self, input_shape):
         self.att = layers.MultiHeadAttention(
-            num_heads=num_heads,
-            key_dim=embed_dim,
+            num_heads=self.num_heads,
+            key_dim=self.embed_dim,
             name='multi_head_attention'
         )
         self.ffn = keras.Sequential([
-            layers.Dense(ff_dim, activation='relu', name='ffn_dense_1'),
-            layers.Dense(embed_dim, name='ffn_dense_2'),
-        ], name='feed_forward')
+            layers.Dense(self.ff_dim, activation='relu'),
+            layers.Dense(self.embed_dim),
+        ])
 
-        self.layernorm1 = layers.LayerNormalization(epsilon=1e-6, name='layer_norm_1')
-        self.layernorm2 = layers.LayerNormalization(epsilon=1e-6, name='layer_norm_2')
-        self.dropout1 = layers.Dropout(rate, name='dropout_1')
-        self.dropout2 = layers.Dropout(rate, name='dropout_2')
+        self.layernorm1 = layers.LayerNormalization(epsilon=1e-6)
+        self.layernorm2 = layers.LayerNormalization(epsilon=1e-6)
+        self.dropout1 = layers.Dropout(self.rate)
+        self.dropout2 = layers.Dropout(self.rate)
+        super().build(input_shape)
 
     def call(self, inputs, training=None):
         attn_output = self.att(inputs, inputs)
@@ -45,19 +48,20 @@ class TransformerBlock(layers.Layer):
         return out2
 
     def get_config(self):
-        config_dict = super().get_config()
-        config_dict.update({
+        config = super().get_config()
+        config.update({
             'embed_dim': self.embed_dim,
             'num_heads': self.num_heads,
             'ff_dim': self.ff_dim,
             'rate': self.rate,
         })
-        return config_dict
+        return config
 
 
 def build_transformer_model(input_shape):
     """
     Build Transformer model for binary classification
+    构建Transformer二分类模型
 
     Args:
         input_shape: Tuple of (sequence_length, n_features)
@@ -84,6 +88,7 @@ def build_transformer_model(input_shape):
         embed_dim=config.TRANSFORMER_DIM,
         num_heads=config.TRANSFORMER_HEADS,
         ff_dim=config.TRANSFORMER_DIM * 2,
+        rate=config.DROPOUT_RATE,
         name='transformer_block_1'
     )(x)
 
@@ -91,36 +96,48 @@ def build_transformer_model(input_shape):
         embed_dim=config.TRANSFORMER_DIM,
         num_heads=config.TRANSFORMER_HEADS,
         ff_dim=config.TRANSFORMER_DIM * 2,
+        rate=config.DROPOUT_RATE,
         name='transformer_block_2'
     )(x)
 
     # Global pooling
     x = layers.GlobalAveragePooling1D(name='global_avg_pool')(x)
-    x = layers.Dropout(0.3, name='dropout_1')(x)
+    x = layers.Dropout(config.DROPOUT_RATE)(x)
 
     # Dense layers
-    x = layers.Dense(64, activation='relu', name='dense_1')(x)
-    x = layers.Dropout(0.2, name='dropout_2')(x)
-    x = layers.Dense(32, activation='relu', name='dense_2')(x)
+    x = layers.Dense(config.DENSE_UNITS[0], activation='relu')(x)
+    x = layers.Dropout(config.DROPOUT_RATE)(x)
+
+    x = layers.Dense(config.DENSE_UNITS[1], activation='relu')(x)
+    x = layers.Dropout(config.DROPOUT_RATE)(x)
 
     # Output layer
     outputs = layers.Dense(1, activation='sigmoid', name='output')(x)
 
     # Create model
-    model = keras.Model(inputs=inputs, outputs=outputs, name='Transformer_Model')
+    model = Model(inputs=inputs, outputs=outputs, name='Transformer')
 
     # Compile model
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
         loss='binary_crossentropy',
-        metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall(),
-                 keras.metrics.AUC(name='auc')]
+        metrics=[
+            'accuracy',
+            keras.metrics.Precision(name='precision'),
+            keras.metrics.Recall(name='recall'),
+            keras.metrics.AUC(name='auc')
+        ]
     )
 
     return model
 
 
 if __name__ == "__main__":
-    # Test model building
-    model = build_transformer_model((config.SEQUENCE_LENGTH, len(config.FEATURES)))
+    # Test model
+    input_shape = (config.SEQUENCE_LENGTH, len(config.FEATURES))
+    model = build_transformer_model(input_shape)
     model.summary()
+
+    print(f"\n✓ Transformer Model created successfully")
+    print(f"  Input shape: {input_shape}")
+    print(f"  Total parameters: {model.count_params():,}")
