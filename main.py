@@ -1,6 +1,6 @@
 """
 Main program for manufacturing data analysis
-Trains multiple models, evaluates performance, and generates visualizations
+主程序：训练所有模型，评估性能，生成可视化
 """
 
 import os
@@ -17,18 +17,16 @@ from utils.data_loader import DataLoader
 from utils.trainer import ModelTrainer
 from utils.evaluator import ModelEvaluator
 
-# Import all models
-from models.lstm_model import build_lstm_model
-from models.cnn_lstm_model import build_cnn_lstm_model
-from models.transformer_model import build_transformer_model
+# Import all models from separate files
 from models.proposed_model import build_proposed_model
-from models.baseline_models import (
-    build_gru_model,
-    build_bilstm_model,
-    build_attention_lstm_model,
-    build_cnn_model,
-    build_mlp_model
-)
+from models.lstm_model import build_lstm_model
+from models.gru_model import build_gru_model
+from models.bilstm_model import build_bilstm_model
+from models.cnn_lstm_model import build_cnn_lstm_model
+from models.attention_lstm_model import build_attention_lstm_model
+from models.cnn_model import build_cnn_model
+from models.transformer_model import build_transformer_model
+from models.mlp_model import build_mlp_model
 
 # Import visualizers
 from visualizations.prediction_viz import PredictionVisualizer
@@ -42,7 +40,7 @@ def create_directories():
     os.makedirs(config.MODELS_DIR, exist_ok=True)
     os.makedirs(config.TABLE_DIR, exist_ok=True)
     os.makedirs(config.FIGURE_DIR, exist_ok=True)
-    print(f"Created directories:")
+    print(f"✓ Created directories:")
     print(f"  - Models: {config.MODELS_DIR}")
     print(f"  - Tables: {config.TABLE_DIR}")
     print(f"  - Figures: {config.FIGURE_DIR}\n")
@@ -57,10 +55,10 @@ def load_and_prepare_data():
     loader = DataLoader()
     X_train, X_val, X_test, y_train, y_val, y_test, scaler = loader.prepare_data()
 
-    print(f"\nData preparation completed!")
-    print(f"Training set: {X_train.shape}")
-    print(f"Validation set: {X_val.shape}")
-    print(f"Test set: {X_test.shape}\n")
+    print(f"\n✓ Data preparation completed!")
+    print(f"  Training set: {X_train.shape}")
+    print(f"  Validation set: {X_val.shape}")
+    print(f"  Test set: {X_test.shape}\n")
 
     return X_train, X_val, X_test, y_train, y_val, y_test, scaler
 
@@ -73,36 +71,28 @@ def build_all_models(input_shape):
 
     models = {}
 
-    # Proposed model (Our model)
-    print("\n1. Building Proposed Model (Ours)...")
-    models['Proposed Model'] = build_proposed_model(input_shape)
+    # Define model builders with their names matching config.MODELS_TO_TRAIN
+    model_builders = {
+        'Proposed': build_proposed_model,
+        'LSTM': build_lstm_model,
+        'GRU': build_gru_model,
+        'BiLSTM': build_bilstm_model,
+        'CNN-LSTM': build_cnn_lstm_model,
+        'Attention-LSTM': build_attention_lstm_model,
+        '1D-CNN': build_cnn_model,
+        'Transformer': build_transformer_model,
+        'MLP': build_mlp_model,
+    }
 
-    # Baseline models
-    print("2. Building LSTM...")
-    models['LSTM'] = build_lstm_model(input_shape)
+    # Build only models specified in config
+    for idx, model_name in enumerate(config.MODELS_TO_TRAIN, 1):
+        if model_name in model_builders:
+            print(f"{idx}. Building {model_name}...")
+            models[model_name] = model_builders[model_name](input_shape)
+        else:
+            print(f"Warning: {model_name} not found in model builders")
 
-    print("3. Building GRU...")
-    models['GRU'] = build_gru_model(input_shape)
-
-    print("4. Building BiLSTM...")
-    models['BiLSTM'] = build_bilstm_model(input_shape)
-
-    print("5. Building CNN-LSTM...")
-    models['CNN-LSTM'] = build_cnn_lstm_model(input_shape)
-
-    print("6. Building Attention-LSTM...")
-    models['Attention-LSTM'] = build_attention_lstm_model(input_shape)
-
-    print("7. Building 1D-CNN...")
-    models['1D-CNN'] = build_cnn_model(input_shape)
-
-    print("8. Building Transformer...")
-    models['Transformer'] = build_transformer_model(input_shape)
-
-    print("9. Building MLP...")
-    models['MLP'] = build_mlp_model(input_shape)
-
-    print(f"\n{len(models)} models built successfully!\n")
+    print(f"\n✓ {len(models)} models built successfully!\n")
 
     return models
 
@@ -135,7 +125,7 @@ def train_all_models(models, X_train, y_train, X_val, y_val):
         trainer.save_final_model()
 
     print("\n" + "="*80)
-    print("ALL MODELS TRAINED SUCCESSFULLY!")
+    print("✓ ALL MODELS TRAINED SUCCESSFULLY!")
     print("="*80 + "\n")
 
     return trainers, histories
@@ -180,7 +170,7 @@ def evaluate_all_models(trainers, X_test, y_test):
 
     # Get best model
     best_model, best_auc = evaluator.get_best_model('AUC')
-    print(f"\nBest Model: {best_model} (AUC = {best_auc:.4f})")
+    print(f"\n✓ Best Model: {best_model} (AUC = {best_auc:.4f})")
     print("="*80 + "\n")
 
     return evaluator, all_predictions
@@ -202,15 +192,18 @@ def create_all_visualizations(evaluator, all_predictions, histories,
         )
 
     pred_viz.plot_predictions_grid(
-        n_rows=3, n_cols=5,
+        n_rows=config.PRED_GRID_ROWS,
+        n_cols=config.PRED_GRID_COLS,
         save_path=os.path.join(config.FIGURE_DIR, 'predictions_grid.png')
     )
     pred_viz.plot_probability_distribution(
-        n_rows=3, n_cols=5,
+        n_rows=config.PRED_GRID_ROWS,
+        n_cols=config.PRED_GRID_COLS,
         save_path=os.path.join(config.FIGURE_DIR, 'probability_distribution.png')
     )
     pred_viz.plot_prediction_errors(
-        n_rows=3, n_cols=5,
+        n_rows=config.PRED_GRID_ROWS,
+        n_cols=config.PRED_GRID_COLS,
         save_path=os.path.join(config.FIGURE_DIR, 'prediction_errors.png')
     )
 
@@ -233,36 +226,37 @@ def create_all_visualizations(evaluator, all_predictions, histories,
 
     roc_viz.plot_roc_curves_grouped(
         groups=groups,
-        save_path=os.path.join(config.FIGURE_DIR, 'config.RESULTS_DIR, 'roc_curves_grouped.png'')
+        save_path=os.path.join(config.FIGURE_DIR, 'roc_curves_grouped.png')
     )
     roc_viz.plot_roc_curves_all(
-        save_path=os.path.join(config.FIGURE_DIR, 'config.RESULTS_DIR, 'roc_curves_all.png'')
+        save_path=os.path.join(config.FIGURE_DIR, 'roc_curves_all.png')
     )
 
-    # 3. Confusion matrices
-    print("3. Creating confusion matrices...")
+    # 3. Advanced visualizations
+    print("3. Creating advanced visualizations...")
     adv_viz = AdvancedVisualizer()
     for model_name, preds in all_predictions.items():
         history = histories.get(model_name)
         adv_viz.add_model_data(model_name, y_test, preds['y_pred'], history)
 
+    # Confusion matrices
     adv_viz.plot_confusion_matrices(
         n_rows=3, n_cols=3,
-        save_path=os.path.join(config.FIGURE_DIR, 'config.RESULTS_DIR, 'confusion_matrices.png'')
+        save_path=os.path.join(config.FIGURE_DIR, 'confusion_matrices.png')
     )
 
-    # 4. Learning curves
+    # Learning curves
     print("4. Creating learning curves...")
     adv_viz.plot_learning_curves(
         n_rows=3, n_cols=3,
-        save_path=os.path.join(config.FIGURE_DIR, 'config.RESULTS_DIR, 'learning_curves.png'')
+        save_path=os.path.join(config.FIGURE_DIR, 'learning_curves.png')
     )
     adv_viz.plot_accuracy_curves(
         n_rows=3, n_cols=3,
-        save_path=os.path.join(config.FIGURE_DIR, 'config.RESULTS_DIR, 'accuracy_curves.png'')
+        save_path=os.path.join(config.FIGURE_DIR, 'accuracy_curves.png')
     )
 
-    # 5. Metrics comparison bar chart
+    # Metrics comparison bar chart
     print("5. Creating metrics comparison bar chart...")
     metrics_dict = {}
     for model_name in all_predictions.keys():
@@ -276,7 +270,7 @@ def create_all_visualizations(evaluator, all_predictions, histories,
         }
     adv_viz.plot_metrics_comparison_bar(
         metrics_dict,
-        save_path=os.path.join(config.FIGURE_DIR, 'config.RESULTS_DIR, 'metrics_comparison.png'')
+        save_path=os.path.join(config.FIGURE_DIR, 'metrics_comparison.png')
     )
 
     # 6. Grad-CAM heatmaps (3x5 grid)
@@ -285,7 +279,8 @@ def create_all_visualizations(evaluator, all_predictions, histories,
     sample_size = min(100, len(X_test))
     X_samples = X_test[:sample_size]
 
-    for model_name, trainer in list(trainers.items())[:5]:  # Limit to 5 models for Grad-CAM
+    # Try to generate Grad-CAM for compatible models
+    for model_name, trainer in list(trainers.items()):
         try:
             gradcam_viz.add_model_heatmap(model_name, trainer.model, X_samples)
         except Exception as e:
@@ -293,13 +288,14 @@ def create_all_visualizations(evaluator, all_predictions, histories,
 
     if gradcam_viz.heatmaps:
         gradcam_viz.plot_heatmaps_grid(
-            n_rows=3, n_cols=5,
-            save_path=os.path.join(config.FIGURE_DIR, 'config.RESULTS_DIR, 'gradcam_heatmaps.png'')
+            n_rows=config.GRADCAM_GRID_ROWS,
+            n_cols=config.GRADCAM_GRID_COLS,
+            save_path=os.path.join(config.FIGURE_DIR, 'gradcam_heatmaps.png')
         )
 
     print("\n" + "="*80)
-    print("ALL VISUALIZATIONS CREATED SUCCESSFULLY!")
-    print(f"Results saved to: {config.RESULTS_DIR}")
+    print("✓ ALL VISUALIZATIONS CREATED SUCCESSFULLY!")
+    print(f"  Results saved to: {config.FIGURE_DIR}")
     print("="*80 + "\n")
 
 
@@ -307,6 +303,7 @@ def main():
     """Main execution function"""
     print("\n" + "="*80)
     print("MANUFACTURING DATA ANALYSIS - DEEP LEARNING MODEL COMPARISON")
+    print("制造业数据分析 - 深度学习模型对比")
     print("="*80 + "\n")
 
     # Create directories
@@ -333,12 +330,12 @@ def main():
     )
 
     print("\n" + "="*80)
-    print("ANALYSIS COMPLETE!")
+    print("✓ ANALYSIS COMPLETE!")
     print("="*80)
     print("\nResults Summary:")
-    print(f"  - Performance table: {config.OUTPUT_DIR}/performance_comparison.csv")
-    print(f"  - Saved models: {config.MODELS_DIR}/")
-    print(f"  - Visualizations: {config.OUTPUT_DIR}/")
+    print(f"  📊 Performance table: {config.TABLE_DIR}/performance_comparison.csv")
+    print(f"  🤖 Saved models: {config.MODELS_DIR}/")
+    print(f"  📈 Visualizations: {config.FIGURE_DIR}/")
     print("\n" + "="*80 + "\n")
 
 
