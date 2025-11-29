@@ -1,5 +1,6 @@
 """
-LSTM Model for manufacturing quality prediction
+LSTM Model for Manufacturing Quality Prediction
+LSTM模型用于制造业质量预测
 """
 
 import tensorflow as tf
@@ -11,6 +12,7 @@ import config
 def build_lstm_model(input_shape):
     """
     Build LSTM model for binary classification
+    构建LSTM二分类模型
 
     Args:
         input_shape: Tuple of (sequence_length, n_features)
@@ -26,41 +28,52 @@ def build_lstm_model(input_shape):
         layers.LSTM(
             config.LSTM_UNITS[0],
             return_sequences=True,
-            name='lstm_layer_1'
+            name='lstm_1'
         ),
-        layers.BatchNormalization(name='bn_1'),
-        layers.Dropout(0.3, name='dropout_1'),
+        layers.BatchNormalization(),
+        layers.Dropout(config.DROPOUT_RATE),
 
         # Second LSTM layer
         layers.LSTM(
             config.LSTM_UNITS[1],
             return_sequences=False,
-            name='lstm_layer_2'
+            name='lstm_2'
         ),
-        layers.BatchNormalization(name='bn_2'),
-        layers.Dropout(0.3, name='dropout_2'),
+        layers.BatchNormalization(),
+        layers.Dropout(config.DROPOUT_RATE),
 
         # Dense layers
-        layers.Dense(64, activation='relu', name='dense_1'),
-        layers.Dropout(0.2, name='dropout_3'),
-        layers.Dense(32, activation='relu', name='dense_2'),
+        layers.Dense(config.DENSE_UNITS[0], activation='relu'),
+        layers.Dropout(config.DROPOUT_RATE),
+
+        layers.Dense(config.DENSE_UNITS[1], activation='relu'),
+        layers.Dropout(config.DROPOUT_RATE),
 
         # Output layer
         layers.Dense(1, activation='sigmoid', name='output')
-    ], name='LSTM_Model')
+    ], name='LSTM')
 
     # Compile model
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
         loss='binary_crossentropy',
-        metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall(),
-                 keras.metrics.AUC(name='auc')]
+        metrics=[
+            'accuracy',
+            keras.metrics.Precision(name='precision'),
+            keras.metrics.Recall(name='recall'),
+            keras.metrics.AUC(name='auc')
+        ]
     )
 
     return model
 
 
 if __name__ == "__main__":
-    # Test model building
-    model = build_lstm_model((config.SEQUENCE_LENGTH, len(config.FEATURES)))
+    # Test model
+    input_shape = (config.SEQUENCE_LENGTH, len(config.FEATURES))
+    model = build_lstm_model(input_shape)
     model.summary()
+
+    print(f"\n✓ LSTM Model created successfully")
+    print(f"  Input shape: {input_shape}")
+    print(f"  Total parameters: {model.count_params():,}")

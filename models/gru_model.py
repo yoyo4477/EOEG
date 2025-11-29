@@ -1,6 +1,6 @@
 """
-CNN-LSTM Hybrid Model for Manufacturing Quality Prediction
-CNN-LSTM混合模型用于制造业质量预测
+GRU Model for Manufacturing Quality Prediction
+GRU模型用于制造业质量预测
 """
 
 import tensorflow as tf
@@ -9,10 +9,10 @@ from tensorflow.keras import layers
 import config
 
 
-def build_cnn_lstm_model(input_shape):
+def build_gru_model(input_shape):
     """
-    Build CNN-LSTM hybrid model for binary classification
-    构建CNN-LSTM混合二分类模型
+    Build GRU model for binary classification
+    构建GRU二分类模型
 
     Args:
         input_shape: Tuple of (sequence_length, n_features)
@@ -24,41 +24,20 @@ def build_cnn_lstm_model(input_shape):
         # Input layer
         layers.Input(shape=input_shape),
 
-        # CNN layers for feature extraction
-        layers.Conv1D(
-            config.CNN_FILTERS[0],
-            kernel_size=config.CNN_KERNEL_SIZE,
-            padding='same',
-            activation='relu',
-            name='conv1d_1'
-        ),
-        layers.BatchNormalization(),
-        layers.MaxPooling1D(pool_size=2),
-        layers.Dropout(0.2),
-
-        layers.Conv1D(
-            config.CNN_FILTERS[1],
-            kernel_size=config.CNN_KERNEL_SIZE,
-            padding='same',
-            activation='relu',
-            name='conv1d_2'
-        ),
-        layers.BatchNormalization(),
-        layers.Dropout(0.2),
-
-        # LSTM layers for temporal patterns
-        layers.LSTM(
-            config.LSTM_UNITS[0],
+        # First GRU layer
+        layers.GRU(
+            config.GRU_UNITS[0],
             return_sequences=True,
-            name='lstm_1'
+            name='gru_1'
         ),
         layers.BatchNormalization(),
         layers.Dropout(config.DROPOUT_RATE),
 
-        layers.LSTM(
-            config.LSTM_UNITS[1],
+        # Second GRU layer
+        layers.GRU(
+            config.GRU_UNITS[1],
             return_sequences=False,
-            name='lstm_2'
+            name='gru_2'
         ),
         layers.BatchNormalization(),
         layers.Dropout(config.DROPOUT_RATE),
@@ -72,7 +51,7 @@ def build_cnn_lstm_model(input_shape):
 
         # Output layer
         layers.Dense(1, activation='sigmoid', name='output')
-    ], name='CNN-LSTM')
+    ], name='GRU')
 
     # Compile model
     model.compile(
@@ -92,9 +71,9 @@ def build_cnn_lstm_model(input_shape):
 if __name__ == "__main__":
     # Test model
     input_shape = (config.SEQUENCE_LENGTH, len(config.FEATURES))
-    model = build_cnn_lstm_model(input_shape)
+    model = build_gru_model(input_shape)
     model.summary()
 
-    print(f"\n✓ CNN-LSTM Model created successfully")
+    print(f"\n✓ GRU Model created successfully")
     print(f"  Input shape: {input_shape}")
     print(f"  Total parameters: {model.count_params():,}")

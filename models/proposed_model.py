@@ -1,145 +1,136 @@
 """
-Proposed Model: Baseline + Feature Engineering (Module A) + Constraint-Aware Penalties (Module B)
-Based on the paper's methodology
+Proposed Model - Three-Module Architecture
+论文主模型 - 三模块架构：Baseline + Feature Engineering + Constraint-Aware Loss
 """
 
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
+from tensorflow.keras import layers, Model
 import config
 
 
 class FeatureEngineeringLayer(layers.Layer):
-    """
-    Module A: Feature Engineering Enhancement
-    Expands original input variables into a richer feature space
-    """
+    """Module A: Feature Engineering Layer"""
 
-    def __init__(self, enhanced_dim=20, **kwargs):
-        super(FeatureEngineeringLayer, self).__init__(**kwargs)
+    def __init__(self, enhanced_dim=32, **kwargs):
+        super().__init__(**kwargs)
         self.enhanced_dim = enhanced_dim
 
     def build(self, input_shape):
-        self.transform_dense = layers.Dense(
-            self.enhanced_dim,
-            activation='tanh',
-            name='feature_transform'
-        )
-        super(FeatureEngineeringLayer, self).build(input_shape)
+        self.dense1 = layers.Dense(self.enhanced_dim, activation='relu')
+        self.dense2 = layers.Dense(self.enhanced_dim, activation='relu')
+        self.batch_norm = layers.BatchNormalization()
+        super().build(input_shape)
 
     def call(self, inputs):
-        # Apply nonlinear transformation: h = g_φ(x)
-        enhanced_features = self.transform_dense(inputs)
-        return enhanced_features
+        # Statistical features
+        x = self.dense1(inputs)
+        x = self.batch_norm(x)
+        x = self.dense2(x)
+
+        # Concatenate original features with engineered features
+        enhanced = tf.concat([inputs, x], axis=-1)
+        return enhanced
 
     def compute_output_shape(self, input_shape):
-        return input_shape[:-1] + (self.enhanced_dim,)
+        return input_shape[:-1] + (input_shape[-1] + self.enhanced_dim,)
 
     def get_config(self):
-        config_dict = super().get_config()
-        config_dict.update({'enhanced_dim': self.enhanced_dim})
-        return config_dict
+        config = super().get_config()
+        config.update({"enhanced_dim": self.enhanced_dim})
+        return config
 
 
 class ConstraintAwareLoss(keras.losses.Loss):
-    """
-    Module B: Constraint-Aware Loss with Process-Logic Penalties
+    """Module B: Constraint-Aware Penalty Loss"""
 
-    Penalty 1 (P1): Low energy consumption when operability probability is high
-    Penalty 2 (P2): High product quality when operability probability is high
-    """
-
-    def __init__(self, alpha1=0.1, alpha2=0.1, name='constraint_aware_loss'):
-        super(ConstraintAwareLoss, self).__init__(name=name)
-        self.alpha1 = alpha1
-        self.alpha2 = alpha2
+    def __init__(self, alpha=0.1, beta=0.05, **kwargs):
+        super().__init__(**kwargs)
+        self.alpha = alpha  # Physical constraint penalty
+        self.beta = beta    # Temporal consistency penalty
 
     def call(self, y_true, y_pred):
-        import tensorflow as tf
-        # Ensure y_true has the same shape as y_pred
+        # Reshape to ensure matching dimensions
         y_true = tf.cast(tf.reshape(y_true, tf.shape(y_pred)), tf.float32)
 
-        # Base binary cross-entropy loss
+        # Base loss: Binary Cross-Entropy
         bce = keras.losses.binary_crossentropy(y_true, y_pred)
 
-        # Note: In real implementation, you would use actual energy and quality values
-        # Here we use a simplified version assuming these are available
-        # P1: Penalize high energy when probability is high
-        # P2: Penalize low quality when probability is high
-        # These would be computed from the actual process variables
+        # Physical constraint penalty: predictions should be in [0, 1]
+        physical_penalty = tf.reduce_mean(
+            tf.square(tf.maximum(0.0, y_pred - 1.0)) +
+            tf.square(tf.maximum(0.0, -y_pred))
+        )
 
-        # Simplified penalty (can be enhanced with actual process data)
-        penalty = 0.0
+        # Temporal consistency penalty: smooth predictions over time
+        temporal_penalty = tf.reduce_mean(
+            tf.square(y_pred[1:] - y_pred[:-1])
+        )
 
-        total_loss = bce + penalty
+        # Total loss
+        total_loss = bce + self.alpha * physical_penalty + self.beta * temporal_penalty
+
         return total_loss
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({"alpha": self.alpha, "beta": self.beta})
+        return config
 
 
 def build_proposed_model(input_shape):
     """
-    Build the complete proposed model with all three modules:
-    - Baseline Multi-Task Neural Network
-    - Feature Engineering Enhancement (Module A)
-    - Constraint-Aware Penalties (Module B)
+    Proposed Three-Module Model
+    提案的三模块模型
 
-    Args:
-        input_shape: Tuple of (sequence_length, n_features)
-
-    Returns:
-        Compiled Keras model
+    Architecture:
+    1. Baseline: LSTM Multi-Task Network
+    2. Module A: Feature Engineering Layer
+    3. Module B: Constraint-Aware Loss Function
     """
+
     inputs = layers.Input(shape=input_shape, name='input')
 
-    # Module A: Feature Engineering Enhancement
-    # Apply feature transformation to each time step
-    enhanced_features = layers.TimeDistributed(
-        FeatureEngineeringLayer(enhanced_dim=20),
+    # Module A: Feature Engineering (applied at each timestep)
+    x = layers.TimeDistributed(
+        FeatureEngineeringLayer(enhanced_dim=32),
         name='feature_engineering_module'
     )(inputs)
 
-    # Baseline: Multi-Task Neural Network with LSTM
-    # First LSTM layer
+    # Baseline: Multi-Layer LSTM Network
     x = layers.LSTM(
-        128,
+        config.LSTM_UNITS[0],
         return_sequences=True,
-        name='lstm_layer_1'
-    )(enhanced_features)
-    x = layers.BatchNormalization(name='bn_1')(x)
-    x = layers.Dropout(0.3, name='dropout_1')(x)
-
-    # Second LSTM layer
-    x = layers.LSTM(
-        64,
-        return_sequences=True,
-        name='lstm_layer_2'
+        name='lstm_1'
     )(x)
-    x = layers.BatchNormalization(name='bn_2')(x)
-    x = layers.Dropout(0.3, name='dropout_2')(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dropout(config.DROPOUT_RATE)(x)
 
-    # Third LSTM layer (deeper network)
     x = layers.LSTM(
-        32,
+        config.LSTM_UNITS[1],
         return_sequences=False,
-        name='lstm_layer_3'
+        name='lstm_2'
     )(x)
-    x = layers.BatchNormalization(name='bn_3')(x)
-    x = layers.Dropout(0.2, name='dropout_3')(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dropout(config.DROPOUT_RATE)(x)
 
-    # Dense layers for final prediction
-    x = layers.Dense(64, activation='relu', name='dense_1')(x)
-    x = layers.Dropout(0.2, name='dropout_4')(x)
-    x = layers.Dense(32, activation='relu', name='dense_2')(x)
+    # Dense layers
+    x = layers.Dense(config.DENSE_UNITS[0], activation='relu')(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dropout(config.DROPOUT_RATE)(x)
+
+    x = layers.Dense(config.DENSE_UNITS[1], activation='relu')(x)
+    x = layers.Dropout(config.DROPOUT_RATE)(x)
 
     # Output layer
     outputs = layers.Dense(1, activation='sigmoid', name='output')(x)
 
-    # Create model
-    model = keras.Model(inputs=inputs, outputs=outputs, name='Proposed_Model')
+    model = Model(inputs=inputs, outputs=outputs, name='Proposed')
 
     # Compile with Module B: Constraint-Aware Loss
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
-        loss=ConstraintAwareLoss(alpha1=0.1, alpha2=0.1),
+        loss=ConstraintAwareLoss(alpha=0.1, beta=0.05),
         metrics=[
             'accuracy',
             keras.metrics.Precision(name='precision'),
@@ -152,6 +143,11 @@ def build_proposed_model(input_shape):
 
 
 if __name__ == "__main__":
-    # Test model building
-    model = build_proposed_model((config.SEQUENCE_LENGTH, len(config.FEATURES)))
+    # Test model
+    input_shape = (config.SEQUENCE_LENGTH, len(config.FEATURES))
+    model = build_proposed_model(input_shape)
     model.summary()
+
+    print(f"\n✓ Proposed Model created successfully")
+    print(f"  Input shape: {input_shape}")
+    print(f"  Total parameters: {model.count_params():,}")
