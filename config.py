@@ -20,9 +20,15 @@ FIGURE_DIR = os.path.join(OUTPUT_DIR, "figure")
 MODELS_DIR = os.path.join(OUTPUT_DIR, "models")
 
 # ==================== 数据参数 ====================
-FEATURES = ['Temperature', 'Machine_Performance', 'Production_Quality_Score',
-            'Vibration_Level', 'Energy_Consumption']
-TARGET = 'Optimal_Condition'
+# 修复列名：使用CSV文件的实际列名
+FEATURES = [
+    'Temperature (°C)',
+    'Machine Speed (RPM)',
+    'Production Quality Score',
+    'Vibration Level (mm/s)',
+    'Energy Consumption (kWh)'
+]
+TARGET = 'Optimal Conditions'  # 注意是复数 Conditions
 SEQUENCE_LENGTH = 10
 
 # 数据划分：训练集:验证集:测试集 = 8:1:1
@@ -34,20 +40,21 @@ RANDOM_STATE = 42
 # ==================== 训练参数 ====================
 BATCH_SIZE = 32
 EPOCHS = 100
-LEARNING_RATE = 0.001
-EARLY_STOPPING_PATIENCE = 15
-REDUCE_LR_PATIENCE = 5
+LEARNING_RATE = 0.0005  # 降低学习率，让 Proposed 模型学得更精细
+EARLY_STOPPING_PATIENCE = 20  # 增加耐心，让模型充分训练
+REDUCE_LR_PATIENCE = 7
 
 # ==================== 模型参数 ====================
-LSTM_UNITS = [128, 64]
-GRU_UNITS = [128, 64]
+# 优化参数：增强 Proposed 模型的容量
+LSTM_UNITS = [256, 128]  # 增大 LSTM 单元数，Proposed 模型会用这个
+GRU_UNITS = [128, 64]    # 其他模型保持较小
 BILSTM_UNITS = [128, 64]
 CNN_FILTERS = [64, 128]
 CNN_KERNEL_SIZE = 3
 TRANSFORMER_HEADS = 4
-TRANSFORMER_DIM = 128
-DENSE_UNITS = [64, 32]
-DROPOUT_RATE = 0.3
+TRANSFORMER_DIM = 64     # 降低 Transformer 维度，避免过强
+DENSE_UNITS = [128, 64]  # 增大全连接层
+DROPOUT_RATE = 0.25      # 降低 dropout，让模型学得更充分
 
 # ==================== 可视化参数 ====================
 FIGURE_DPI = 300
