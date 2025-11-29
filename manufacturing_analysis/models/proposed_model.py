@@ -32,6 +32,9 @@ class FeatureEngineeringLayer(layers.Layer):
         enhanced_features = self.transform_dense(inputs)
         return enhanced_features
 
+    def compute_output_shape(self, input_shape):
+        return input_shape[:-1] + (self.enhanced_dim,)
+
     def get_config(self):
         config_dict = super().get_config()
         config_dict.update({'enhanced_dim': self.enhanced_dim})
@@ -52,6 +55,10 @@ class ConstraintAwareLoss(keras.losses.Loss):
         self.alpha2 = alpha2
 
     def call(self, y_true, y_pred):
+        import tensorflow as tf
+        # Ensure y_true has the same shape as y_pred
+        y_true = tf.cast(tf.reshape(y_true, tf.shape(y_pred)), tf.float32)
+
         # Base binary cross-entropy loss
         bce = keras.losses.binary_crossentropy(y_true, y_pred)
 

@@ -40,10 +40,12 @@ from visualizations.advanced_viz import AdvancedVisualizer
 def create_directories():
     """Create necessary directories for results"""
     os.makedirs(config.MODELS_DIR, exist_ok=True)
-    os.makedirs(config.RESULTS_DIR, exist_ok=True)
+    os.makedirs(config.TABLE_DIR, exist_ok=True)
+    os.makedirs(config.FIGURE_DIR, exist_ok=True)
     print(f"Created directories:")
     print(f"  - Models: {config.MODELS_DIR}")
-    print(f"  - Results: {config.RESULTS_DIR}\n")
+    print(f"  - Tables: {config.TABLE_DIR}")
+    print(f"  - Figures: {config.FIGURE_DIR}\n")
 
 
 def load_and_prepare_data():
@@ -173,7 +175,7 @@ def evaluate_all_models(trainers, X_test, y_test):
     evaluator.print_comparison_table()
 
     # Save to CSV
-    table_path = os.path.join(config.RESULTS_DIR, 'performance_comparison.csv')
+    table_path = os.path.join(config.TABLE_DIR, 'performance_comparison.csv')
     evaluator.save_comparison_table(table_path)
 
     # Get best model
@@ -201,15 +203,15 @@ def create_all_visualizations(evaluator, all_predictions, histories,
 
     pred_viz.plot_predictions_grid(
         n_rows=3, n_cols=5,
-        save_path=os.path.join(config.RESULTS_DIR, 'predictions_grid.png')
+        save_path=os.path.join(config.FIGURE_DIR, 'predictions_grid.png')
     )
     pred_viz.plot_probability_distribution(
         n_rows=3, n_cols=5,
-        save_path=os.path.join(config.RESULTS_DIR, 'probability_distribution.png')
+        save_path=os.path.join(config.FIGURE_DIR, 'probability_distribution.png')
     )
     pred_viz.plot_prediction_errors(
         n_rows=3, n_cols=5,
-        save_path=os.path.join(config.RESULTS_DIR, 'prediction_errors.png')
+        save_path=os.path.join(config.FIGURE_DIR, 'prediction_errors.png')
     )
 
     # 2. ROC curves (1x3 layout)
@@ -231,10 +233,10 @@ def create_all_visualizations(evaluator, all_predictions, histories,
 
     roc_viz.plot_roc_curves_grouped(
         groups=groups,
-        save_path=os.path.join(config.RESULTS_DIR, 'roc_curves_grouped.png')
+        save_path=os.path.join(config.FIGURE_DIR, 'config.RESULTS_DIR, 'roc_curves_grouped.png'')
     )
     roc_viz.plot_roc_curves_all(
-        save_path=os.path.join(config.RESULTS_DIR, 'roc_curves_all.png')
+        save_path=os.path.join(config.FIGURE_DIR, 'config.RESULTS_DIR, 'roc_curves_all.png'')
     )
 
     # 3. Confusion matrices
@@ -246,18 +248,18 @@ def create_all_visualizations(evaluator, all_predictions, histories,
 
     adv_viz.plot_confusion_matrices(
         n_rows=3, n_cols=3,
-        save_path=os.path.join(config.RESULTS_DIR, 'confusion_matrices.png')
+        save_path=os.path.join(config.FIGURE_DIR, 'config.RESULTS_DIR, 'confusion_matrices.png'')
     )
 
     # 4. Learning curves
     print("4. Creating learning curves...")
     adv_viz.plot_learning_curves(
         n_rows=3, n_cols=3,
-        save_path=os.path.join(config.RESULTS_DIR, 'learning_curves.png')
+        save_path=os.path.join(config.FIGURE_DIR, 'config.RESULTS_DIR, 'learning_curves.png'')
     )
     adv_viz.plot_accuracy_curves(
         n_rows=3, n_cols=3,
-        save_path=os.path.join(config.RESULTS_DIR, 'accuracy_curves.png')
+        save_path=os.path.join(config.FIGURE_DIR, 'config.RESULTS_DIR, 'accuracy_curves.png'')
     )
 
     # 5. Metrics comparison bar chart
@@ -274,7 +276,7 @@ def create_all_visualizations(evaluator, all_predictions, histories,
         }
     adv_viz.plot_metrics_comparison_bar(
         metrics_dict,
-        save_path=os.path.join(config.RESULTS_DIR, 'metrics_comparison.png')
+        save_path=os.path.join(config.FIGURE_DIR, 'config.RESULTS_DIR, 'metrics_comparison.png'')
     )
 
     # 6. Grad-CAM heatmaps (3x5 grid)
@@ -292,7 +294,7 @@ def create_all_visualizations(evaluator, all_predictions, histories,
     if gradcam_viz.heatmaps:
         gradcam_viz.plot_heatmaps_grid(
             n_rows=3, n_cols=5,
-            save_path=os.path.join(config.RESULTS_DIR, 'gradcam_heatmaps.png')
+            save_path=os.path.join(config.FIGURE_DIR, 'config.RESULTS_DIR, 'gradcam_heatmaps.png'')
         )
 
     print("\n" + "="*80)
@@ -334,9 +336,9 @@ def main():
     print("ANALYSIS COMPLETE!")
     print("="*80)
     print("\nResults Summary:")
-    print(f"  - Performance table: {config.RESULTS_DIR}/performance_comparison.csv")
+    print(f"  - Performance table: {config.OUTPUT_DIR}/performance_comparison.csv")
     print(f"  - Saved models: {config.MODELS_DIR}/")
-    print(f"  - Visualizations: {config.RESULTS_DIR}/")
+    print(f"  - Visualizations: {config.OUTPUT_DIR}/")
     print("\n" + "="*80 + "\n")
 
 

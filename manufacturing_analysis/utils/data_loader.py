@@ -66,24 +66,28 @@ class DataLoader:
         return np.array(X_seq), np.array(y_seq)
 
     def split_data(self, X, y):
-        """Split data into train, validation, and test sets"""
-        # First split: train+val and test
+        """
+        Split data into train, validation, and test sets
+        Ratio: Train:Val:Test = 8:1:1
+        """
+        # First split: separate test set (10%)
         X_temp, X_test, y_temp, y_test = train_test_split(
-            X, y, test_size=config.TEST_SPLIT,
+            X, y, test_size=config.TEST_RATIO,
             random_state=config.RANDOM_STATE, stratify=y
         )
 
-        # Second split: train and validation
+        # Second split: separate validation set (10% of total = 1/9 of remaining)
+        val_size = config.VAL_RATIO / (config.TRAIN_RATIO + config.VAL_RATIO)
         X_train, X_val, y_train, y_val = train_test_split(
             X_temp, y_temp,
-            test_size=config.VALIDATION_SPLIT / (1 - config.TEST_SPLIT),
+            test_size=val_size,
             random_state=config.RANDOM_STATE, stratify=y_temp
         )
 
-        print(f"\nData split:")
-        print(f"Train: {X_train.shape[0]} samples")
-        print(f"Validation: {X_val.shape[0]} samples")
-        print(f"Test: {X_test.shape[0]} samples")
+        print(f"\nData split (Train:Val:Test = 8:1:1):")
+        print(f"Train: {X_train.shape[0]} samples ({X_train.shape[0]/len(X)*100:.1f}%)")
+        print(f"Validation: {X_val.shape[0]} samples ({X_val.shape[0]/len(X)*100:.1f}%)")
+        print(f"Test: {X_test.shape[0]} samples ({X_test.shape[0]/len(X)*100:.1f}%)")
 
         return X_train, X_val, X_test, y_train, y_val, y_test
 
