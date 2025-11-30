@@ -29,15 +29,15 @@ class DataLoader:
 
     def preprocess_data(self, df):
         """数据预处理"""
-        # 中英文列名映射
+        # 中英文列名映射 - 映射到config.FEATURES中定义的列名
         column_mapping = {
             '时间': 'Time',
-            '温度': 'Temperature',
-            '机器执行': 'Machine_Performance',
-            '生产质量评分': 'Production_Quality_Score',
-            '振动水平': 'Vibration_Level',
-            '能源消耗量': 'Energy_Consumption',
-            '最佳条件': 'Optimal_Condition'
+            '温度': 'Temperature (°C)',
+            '机器执行': 'Machine Speed (RPM)',
+            '生产质量评分': 'Production Quality Score',
+            '振动水平': 'Vibration Level (mm/s)',
+            '能源消耗量': 'Energy Consumption (kWh)',
+            '最佳条件': 'Optimal Conditions'
         }
 
         # 如果是中文列名，转换为英文

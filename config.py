@@ -6,12 +6,11 @@ Manufacturing Data Analysis - Configuration File
 import os
 
 # ==================== 路径配置 ====================
-BASE_DIR = "/Users/yoyo4477/Documents/数学建模/单子/001EOEG/code"
+# 自动获取当前文件所在目录作为基础路径
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# 数据集路径（选择其中一个）
-DATA_PATH = "/Users/yoyo4477/Documents/数学建模/单子/001EOEG/data/Manufacturing_dataset.csv"
-# 如果数据集在code文件夹，取消下面的注释并注释掉上面的
-# DATA_PATH = os.path.join(BASE_DIR, "Manufacturing_dataset.csv")
+# 数据集路径（在当前目录下）
+DATA_PATH = os.path.join(BASE_DIR, "Manufacturing_dataset.csv")
 
 # 输出路径
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")

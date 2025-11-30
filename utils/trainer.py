@@ -95,14 +95,24 @@ class ModelTrainer:
 
         if os.path.exists(model_path):
             print(f"Loading best model from {model_path}")
-            self.model = keras.models.load_model(model_path, compile=False)
-            # Recompile with original settings
-            self.model.compile(
-                optimizer=keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
-                loss='binary_crossentropy',
-                metrics=['accuracy', keras.metrics.Precision(),
-                         keras.metrics.Recall(), keras.metrics.AUC(name='auc')]
-            )
+
+            # For Proposed model, we need to provide custom objects
+            if self.model_name == 'Proposed':
+                from models.proposed_model import FeatureEngineeringLayer, ConstraintAwareLoss
+                custom_objects = {
+                    'FeatureEngineeringLayer': FeatureEngineeringLayer,
+                    'ConstraintAwareLoss': ConstraintAwareLoss
+                }
+                self.model = keras.models.load_model(model_path, custom_objects=custom_objects)
+            else:
+                self.model = keras.models.load_model(model_path, compile=False)
+                # Recompile with original settings
+                self.model.compile(
+                    optimizer=keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
+                    loss='binary_crossentropy',
+                    metrics=['accuracy', keras.metrics.Precision(),
+                             keras.metrics.Recall(), keras.metrics.AUC(name='auc')]
+                )
             return self.model
         else:
             print(f"No saved model found at {model_path}")
